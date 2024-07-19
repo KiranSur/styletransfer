@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<head>
+    <title>Style and Texture Transfer</title>
+</head>
+<style>
+  .container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  figure {
+    display: table;
+    margin-left: 5px;
+    margin-right: 5px;
+  }
+
+  .blend-figure {
+    display: table;
+    margin-left: 2px;
+    margin-right: 2px;
+    margin-bottom: 2px;
+    margin-top: 2px
+  }
+  
+  img {
+    max-height: 250px;
+    max-width: 250px;
+    display: block;
+    border: 2px solid black
+  }
+
+  .gif_img {
+    max-height: 300px;
+    max-width: 300px;
+    display: block;
+    border: 2px solid black
+  }
+
+  .img-big {
+    max-height: 500px;
+    max-width: 500px;
+    display: block;
+    border: 2px solid black
+  }
+
+  .img-huge {
+    max-height: 700px;
+    max-width: 700px;
+    display: block;
+    border: 2px solid black
+  }
+
+  .img-med {
+    max-height: 300px;
+    max-width: 300px;
+    display: block;
+    border: 2px solid black
+  }
+
+  .formula-img {
+    max-width: 500px;
+    max-height: 500px;
+    display: block;
+    margin-bottom: 10px
+  }
+
+  .diagram-img {
+    max-width: 1000px;
+    display: block;
+    margin-bottom: 10px
+  }
+
+  .conclusion {
+    margin-bottom: 40px
+  }
+  
+  figcaption {
+    display: table-caption;
+    caption-side: bottom;
+    font-size: 15px;
+    text-align: center;
+    color: #606060
+  }
+
+  body {
+    padding-left: 15%;
+    padding-right: 15%
+  }
+
+  p {
+    color: #606060
+  }
+
+  h1 {
+    padding-bottom: 20px;
+  }
+
+  h2 {
+    padding-top: 30px;
+  }
+
+  h3 {
+    padding-top: 20px;
+  }
+
+</style>
+
+<body style="font-family: Verdana; background-color: #f7f7f7">
+    <center>
+        <h1>Style and Texture Transfer</h1>
+    </center>
+
+    <h2>Introduction</h2>
+
+    <p>
+        Here, I'll be implementing two classic papers that fall under the "style/texture transfer" umbrella. Image Quilting and Neural Style Transfer. Image quilting follows <a href="https://www2.eecs.berkeley.edu/Research/Projects/CS/vision/papers/efros-siggraph01.pdf">
+        this paper</a> by Efros et al. and Neural Style Transfer follows <a href="https://arxiv.org/pdf/1508.06576.pdf"> this paper</a> by Gatys et al. Let's get started!
+    </p>
+
+    <h2>Image Quilting!</h2>
+
+    <p>
+        In this section, I'll be implementing the image quilting paper linked above. Image quilting is a technique that allows us to take textures from an image and repeat them over and over to generate 
+        novel images of the same texture seamlessly! It will also let us do texture transfer, allowing us to take an image and impose the texture of another image onto it.
+    </p>
+
+    <div class="container">
+        <figure class="image">
+            <img src="images/quilting_techniques.png" class="formula-img">
+                <figcaption class="figcaption">Image Quilting Techniques we'll go through!</figcaption>
+         </figure>
+    </div>
+
+    <h3>Randomly Sampled Texture</h3>
+
+    <p>
+        The first image quilting method will be very simple: randomly sampling patches from our texture image and placing them next to each other to create a new image. As you would expect, this creates 
+        some pretty disjoint results with lots of seams. I used a patch size of 15 for an output image of size 300. Here are some results!
+    </p>
+
+    <div class="container">
+        <figure class="image">
+            <img src="samples/bricks_small.jpg" width="300" height="300">
+                <figcaption class="figcaption">Original Texture</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="images/bricks_random.jpg" class="img-big">
+                <figcaption class="figcaption">Random Sample Texture</figcaption>
+         </figure>
+    </div>
+
+    <div class="container">
+        <figure class="image">
+            <img src="samples/text_small.jpg" width="300" height="300">
+                <figcaption class="figcaption">Original Texture</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="images/text_random.jpg" class="img-big">
+                <figcaption class="figcaption">Random Sample Texture</figcaption>
+         </figure>
+    </div>
+
+    <h3>Overlapping Patches</h3>
+
+    <p>
+        As you saw, the synthesized textures weren't great for the randomly sampled texture method. Next, let's try the overlapping patch method. For this, we're going to start by randomly sampling a 
+        patch and putting it in the top left corner of our output image. Then, we designate an overlap zone (the amount that we want our next patch to overlap with the previous one) and sample every 
+        possible patch in our texture image to see which one fits the best (has the lowest SSD). To make this faster, I convolved the image with a 2D filter, resulting in another image of SSD costs. From there, 
+        I designated a "tol" value which determined which of the patches I would select. If tol=1 I would select the patch with the lowest SSD but if tol=5 I would randomly sample a patch from the 5 best 
+        texture patches by SSD cost. This resulted in some pretty solid results! Also, I used patch sizes of 25 with overlaps of 11, a tol of 5, and an output size of 300.
+    </p>
+
+    <div class="container">
+        <figure class="image">
+            <img src="samples/bricks_small.jpg" width="300" height="300">
+                <figcaption class="figcaption">Original Texture</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="images/bricks_quilt_simple.jpg" class="img-big">
+                <figcaption class="figcaption">Quilt Simple (tol=5)</figcaption>
+         </figure>
+    </div>
+
+    <div class="container">
+        <figure class="image">
+            <img src="samples/text_small.jpg" width="300" height="300">
+                <figcaption class="figcaption">Original Texture</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="images/text_quilt_simple.jpg" class="img-big">
+                <figcaption class="figcaption">Quilt Simple (tol=5)</figcaption>
+         </figure>
+    </div>
+
+    <h3>Seam Finding</h3>
+
+    <p>
+        While the previous method worked well, it led to a lot of seams in the final image as sequential patches were simply placed on their predecessors. To take out these seams, we're going to add in 
+        seam finding, where we find the minimum cost (by SSD) seam between the overlapping regions of two patches such that we can know where to optimally cut each one when placing them next to each other 
+        (as shown in the diagram below).
+    </p>
+
+    <div class="container">
+        <figure class="image">
+            <img src="images/cut.png">
+                <figcaption class="figcaption"></figcaption>
+         </figure>
+    </div>
+
+    <p>For patches overlapping on other patches both horizontally and vertically, I did a logical and of the cut masks. This resulted in output textures that were 
+        much more... seamless!! Also, I used a patch size of 25 and overlap of 11 for an output image of size 300.</p>
+
+    <div class="container">
+        <figure class="image">
+            <img src="images/horizontal_seam.jpg" width="200" height="200">
+                <figcaption class="figcaption">Horizontal Seam</figcaption>
+        </figure>
+        <figure class="image">
+            <img src="images/vertical_seam.jpg" width="200" height="200">
+                <figcaption class="figcaption">Vertical Seam</figcaption>
+        </figure>
+        <figure class="image">
+            <img src="images/seam.jpg" width="200" height="200">
+                <figcaption class="figcaption">Combined Seam</figcaption>
+        </figure>
+    </div>
+
+    <div class="container">
+        <figure class="image">
+            <img src="samples/text_small.jpg" width="300" height="300">
+                <figcaption class="figcaption">Original Patch</figcaption>
+        </figure>
+        <figure class="image">
+            <img src="images/cut_seam.jpg" width="300" height="300">
+                <figcaption class="figcaption">Cut Patch</figcaption>
+        </figure>
+    </div>
+
+    <p>It's also interesting to note how setting tol=5, as opposed to tol=1, leads to more incongruent horizontal features (like the brick lines below) since the second or third best matching 
+        patches may not always have the same brick line.</p>
+
+    <div class="container">
+        <figure class="image">
+            <img src="samples/bricks_small.jpg" width="300" height="300">
+                <figcaption class="figcaption">Original Texture</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="images/bricks_seam_tol1.jpg" class="img-big">
+                <figcaption class="figcaption">Quilt Cut (tol=1)</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="images/bricks_seam_tol5.jpg" class="img-big">
+                <figcaption class="figcaption">Quilt Cut (tol=5)</figcaption>
+         </figure>
+    </div>
+
+    <p>It's pretty cool how setting tol=1 results in copying many of the same words from the original texture (like "Monica") whereas tol=5 generates novel words as we sample from patches that aren't the 
+        top fit.
+    </p>
+
+    <div class="container">
+        <figure class="image">
+            <img src="samples/text_small.jpg" width="300" height="300">
+                <figcaption class="figcaption">Original Texture</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="images/text_seam_tol1.jpg" class="img-big">
+                <figcaption class="figcaption">Quilt Cut (tol=1)</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="images/text_seam_tol5.jpg" class="img-big">
+                <figcaption class="figcaption">Quilt Cut (tol=5)</figcaption>
+         </figure>
+    </div>
+
+    <div class="container">
+        <figure class="image">
+            <img src="samples/texture.png" width="300" height="300">
+                <figcaption class="figcaption">Original Texture</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="images/yarn_seam_tol1.jpg" class="img-big">
+                <figcaption class="figcaption">Quilt Cut (tol=1)</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="images/yarn_seam_tol5.jpg" class="img-big">
+                <figcaption class="figcaption">Quilt Cut (tol=5)</figcaption>
+         </figure>
+    </div>
+
+    <h3>Texture Transfer</h3>
+
+    <p>That concludes the texture synthesis part of the quilting paper. Now we can apply this principle to do texture transfer! Essentially, we add a new cost term when determining which sample 
+        patches fit best to our current output image. This new cost term is the luminance of a separate content image that we want to keep the general structure of. Then, we introduce a new term 
+        (alpha) which determines the weighting of both of our costs (normal ssd and luminance ssd). This way, each new patch we tag 
+        on to our image corresponds to the luminance of our desired content image at that location while also fitting well with the pathes it overlaps with. This leads to some awesome results! 
+        I used a patch size of 25 and an overlap of 11 for these images.
+    </p>
+
+    <div class="container">
+        <figure class="image">
+            <img src="samples/han.png">
+                <figcaption class="figcaption">Content Image</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="samples/moss.png">
+                <figcaption class="figcaption">Texture Image</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="images/han_moss_norm.jpg" class="img-med">
+                <figcaption class="figcaption">Texture Transfer</figcaption>
+         </figure>
+    </div>
+
+    <div class="container">
+        <figure class="image">
+            <img src="samples/gandhi.png">
+                <figcaption class="figcaption">Content Image</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="samples/starry.png">
+                <figcaption class="figcaption">Texture Image</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="images/gandhi_starry_norm.jpg" class="img-med">
+                <figcaption class="figcaption">Texture Transfer</figcaption>
+         </figure>
+    </div>
+
+    <div class="container">
+        <figure class="image">
+            <img src="images/feynman.jpg">
+                <figcaption class="figcaption">Content Image</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="samples/texture.png">
+                <figcaption class="figcaption">Texture Image</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="images/feynamn_yarn_norm.jpg" class="img-big">
+                <figcaption class="figcaption">Texture Transfer</figcaption>
+         </figure>
+    </div>
+
+    <h3>Iterative Texture Transfer</h3>
+
+    <p>
+        Now I'm going to be doing the Iterative version of texture transfer. The only difference from the last section is that now I do the texture transfer multiple times,
+        starting with a patch size pretty big (like 45), then going down by a third in each iteration. Then, I add a new cost term that compares the SSD between the last iteration (with bigger patches) to 
+        the current iteration (with smaller patches). This way, earlier iterations capture the broad ideas in an image while the later iterations capture the specific details. The alpha value also changes 
+        through iterations and is given by the following formula from the paper: alpha = 0.8 * (iteration - 1) / (num_iterations - 1) + 0.1. Here are some results!
+    </p>
+
+    <div class="container">
+        <figure class="image">
+            <img src="samples/han.png">
+                <figcaption class="figcaption">Content Image</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="samples/moss.png">
+                <figcaption class="figcaption">Texture Image</figcaption>
+         </figure>
+    </div>
+
+    <div class="container">
+         <figure class="image">
+            <img src="images/han_moss/han_moss_0.jpg">
+                <figcaption class="figcaption">Iteration 0</figcaption>
+         </figure>
+
+         <figure class="image">
+            <img src="images/han_moss/han_moss_1.jpg">
+                <figcaption class="figcaption">Iteration 1</figcaption>
+         </figure>
+
+         <figure class="image">
+            <img src="images/han_moss/han_moss_2.jpg">
+                <figcaption class="figcaption">Iteration 2</figcaption>
+         </figure>
+    </div>
+
+    <div class="container">
+        <figure class="image">
+            <img src="samples/gandhi.png">
+                <figcaption class="figcaption">Content Image</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="samples/starry.png">
+                <figcaption class="figcaption">Texture Image</figcaption>
+         </figure>
+    </div>
+
+    <div class="container">
+         <figure class="image">
+            <img src="images/gandhi_starry/gandhi_starry_0.jpg">
+                <figcaption class="figcaption">Iteration 0</figcaption>
+         </figure>
+
+         <figure class="image">
+            <img src="images/gandhi_starry/gandhi_starry_1.jpg">
+                <figcaption class="figcaption">Iteration 1</figcaption>
+         </figure>
+
+         <figure class="image">
+            <img src="images/gandhi_starry/gandhi_starry_2.jpg">
+                <figcaption class="figcaption">Iteration 2</figcaption>
+         </figure>
+    </div>
+
+    <div class="container">
+        <figure class="image">
+            <img src="images/feynman.jpg">
+                <figcaption class="figcaption">Content Image</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="images/sketch.jpg">
+                <figcaption class="figcaption">Texture Image</figcaption>
+         </figure>
+    </div>
+
+    <div class="container">
+         <figure class="image">
+            <img src="images/feynman_sketch/feynman_sketch_0.jpg">
+                <figcaption class="figcaption">Iteration 0</figcaption>
+         </figure>
+
+         <figure class="image">
+            <img src="images/feynman_sketch/feynman_sketch_1.jpg">
+                <figcaption class="figcaption">Iteration 1</figcaption>
+         </figure>
+
+         <figure class="image">
+            <img src="images/feynman_sketch/feynman_sketch_2.jpg">
+                <figcaption class="figcaption">Iteration 2</figcaption>
+         </figure>
+    </div>
+
+    <div class="container">
+        <figure class="image">
+            <img src="images/feynman.jpg">
+                <figcaption class="figcaption">Content Image</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="samples/texture.png">
+                <figcaption class="figcaption">Texture Image</figcaption>
+         </figure>
+    </div>
+
+    <div class="container">
+         <figure class="image">
+            <img src="images/feynman_yarn/feynman_yarn_0.jpg">
+                <figcaption class="figcaption">Iteration 0</figcaption>
+         </figure>
+
+         <figure class="image">
+            <img src="images/feynman_yarn/feynman_yarn_1.jpg">
+                <figcaption class="figcaption">Iteration 1</figcaption>
+         </figure>
+
+         <figure class="image">
+            <img src="images/feynman_yarn/feynman_yarn_2.jpg">
+                <figcaption class="figcaption">Iteration 2</figcaption>
+         </figure>
+    </div>
+
+    <div class="container">
+        <figure class="image">
+            <img src="samples/han.png">
+                <figcaption class="figcaption">Content Image</figcaption>
+         </figure>
+         <figure class="image">
+            <img src="samples/white_small.jpg">
+                <figcaption class="figcaption">Texture Image</figcaption>
+         </figure>
+    </div>
+
+    <div class="container">
+         <figure class="image">
+            <img src="images/han_white/han_white_0.jpg">
+                <figcaption class="figcaption">Iteration 0</figcaption>
+         </figure>
+
+         <figure class="image">
+            <img src="images/han_white/han_white_1.jpg">
+                <figcaption class="figcaption">Iteration 1</figcaption>
+         </figure>
+
+         <figure class="image">
+            <img src="images/han_white/han_white_2.jpg">
+                <figcaption class="figcaption">Iteration 2</figcaption>
+         </figure>
+    </div>
+
+    <h2>Neural Style Transfer!</h2>
+
+    <p>
+        In this section, I'll be implementing the "A Neural Algorithm of Artistic Style" paper by Gatys et al. It's a super interesting paper that does style transfer through optimization of an image 
+        rather than a model. Let's get started!
+    </p>
+
+    <h3>How it Works</h3>
+
+    <p>The overarching idea of the paper is to optimize an image's embeddings to be between the embeddings of a content and style image. To do so, we take a pretrained model that can give us 
+        embeddings (in this case VGG 19) and take the model outputs at different layers on our style and content images. Then, we take the MSE loss between the model's output embeddings on our image 
+        and the output embeddings from our style and content images. We can weight these losses depending on how much style/content we want (the paper found that having a ratio of style/loss of 1e3 
+        was effective). To have the gradients flow backward to our image, we need to have an optimizer on our input (in this case, I used LBFGS). We can have our input image be either a white noise 
+        image or the content image. This process is visualized below.
+    </p>
+
+    <div class="container">
+        <figure class="image">
+            <img src="images/style transfer explanation.png" class="img-huge">
+                <figcaption class="figcaption">Style Transfer Diagram</figcaption>
+         </figure>
+    </div>
+
+    <h3>The Style Loss</h3>
+
+    <p>Now let's go more in-depth into the style loss from the paper. At each layer output, we are given many square feature maps. We first flatten this into many feature vectors, do an outer product of 
+        the vectors with themselves (x * x^T), and normalize those vectors 
+        by the size of each feature map. This is known as the Gram matrix and we calculate the style MSE loss between the gram matrix for our input image and style image at each layer. A visualization of this 
+        gram matrix and how it gets the correlation between features is shown below.
+    </p>
+
+    <div class="container">
+        <figure class="image">
+            <img src="images/gram.png" class="img-huge">
+                <figcaption class="figcaption">Gram Visualization</figcaption>
+         </figure>
+    </div>
+
+    <h3>Model Specifics</h3>
+
+    <p>As per the paper, I used the Conv4_2 layer (2nd layer of 4th block) for the content loss and the Conv1_1, Conv2_1, Conv3_1, Conv4_1, and Conv5_1 layers for the style loss. I used a weight of 1 for 
+        the content loss and a weight of 1e3 for the style loss. Below is a diagram of the VGG 19 architecture.
+    </p>
+
+    <div class="container">
+        <figure class="image">
+            <img src="images/vgg19.png" class="img-huge">
+                <figcaption class="figcaption">VGG 19 Architecture</figcaption>
+         </figure>
+    </div>
+
+    <h3>Results!!</h3>
+
+    <div class="container">
+        <figure class="image">
+           <img src="images/style_transfer/kobe.jpeg">
+               <figcaption class="figcaption">Content Image</figcaption>
+        </figure>
+
+        <figure class="image">
+           <img src="images/style_transfer/starry_night.jpg">
+               <figcaption class="figcaption">Style Image</figcaption>
+        </figure>
+        <figure class="image">
+           <img src="images/style_transfer/starry_kobe_39.jpg">
+               <figcaption class="figcaption">Style Transfer</figcaption>
+        </figure>
+   </div>
+
+   <div class="container">
+        <figure class="image">
+        <img src="images/style_transfer/henson.jpg">
+            <figcaption class="figcaption">Content Image</figcaption>
+        </figure>
+
+        <figure class="image">
+        <img src="images/style_transfer/picasso.jpg">
+            <figcaption class="figcaption">Style Image</figcaption>
+        </figure>
+        <figure class="image">
+        <img src="images/style_transfer/picasso_henson_39.jpg">
+            <figcaption class="figcaption">Style Transfer</figcaption>
+        </figure>
+    </div>
+
+    <div class="container">
+        <figure class="image">
+        <img src="images/style_transfer/spiderman.jpg">
+            <figcaption class="figcaption">Content Image</figcaption>
+        </figure>
+
+        <figure class="image">
+        <img src="images/style_transfer/glacier.jpg">
+            <figcaption class="figcaption">Style Image</figcaption>
+        </figure>
+        <figure class="image">
+        <img src="images/style_transfer/glacier_spiderman_39.jpg">
+            <figcaption class="figcaption">Style Transfer</figcaption>
+        </figure>
+    </div>
+
+    <div class="container">
+        <figure class="image">
+        <img src="images/style_transfer/tubingen.jpg">
+            <figcaption class="figcaption">Content Image</figcaption>
+        </figure>
+
+        <figure class="image">
+        <img src="images/style_transfer/starry_night.jpg">
+            <figcaption class="figcaption">Style Image</figcaption>
+        </figure>
+        <figure class="image">
+        <img src="images/style_transfer/starry_tubingen_79.jpg">
+            <figcaption class="figcaption">Style Transfer</figcaption>
+        </figure>
+    </div>
+
+
+    <h3>[Experimentation] ~ Average Pooling</h3>
+
+    <p>The paper mentioned that replacing the pretrained VGG 19 model's Max Pool layers with Avg Pool layers results in better gradient flow and as such better images at the end. Here are some results 
+        of doing so with some of the previous images. As you can see, they turned out a lot more vivid/bright and definitely captured more of the original images tone/character!
+    </p>
+
+    <div class="container">
+        <figure class="image">
+           <img src="images/style_transfer/kobe.jpeg">
+               <figcaption class="figcaption">Content Image</figcaption>
+        </figure>
+
+        <figure class="image">
+           <img src="images/style_transfer/starry_night.jpg">
+               <figcaption class="figcaption">Style Image</figcaption>
+        </figure>
+        <figure class="image">
+           <img src="images/style_transfer/starry_kobe_avg_39.jpg">
+               <figcaption class="figcaption">Style Transfer</figcaption>
+        </figure>
+   </div>
+
+   <div class="container">
+        <figure class="image">
+        <img src="images/style_transfer/henson.jpg">
+            <figcaption class="figcaption">Content Image</figcaption>
+        </figure>
+
+        <figure class="image">
+        <img src="images/style_transfer/picasso.jpg">
+            <figcaption class="figcaption">Style Image</figcaption>
+        </figure>
+        <figure class="image">
+        <img src="images/style_transfer/picasso_henson_avg_39.jpg">
+            <figcaption class="figcaption">Style Transfer</figcaption>
+        </figure>
+    </div>
+
+
+    <h3>[Experimentation] ~ Mega Style</h3>
+
+    <p>
+        I was curious how the images would look if I cranked up the weight for the style loss a ton, so I did that! Here is how some of the images turned out with a style wait of 1e7. Honestly, these images 
+        look way cooler than before!! It's also pretty interesting how this resulted in some content artifacts from the style image showing up in the output. 
+    </p>
+
+    <div class="container">
+        <figure class="image">
+           <img src="images/style_transfer/henson.jpg">
+               <figcaption class="figcaption">Content Image</figcaption>
+        </figure>
+
+        <figure class="image">
+           <img src="images/style_transfer/picasso.jpg">
+               <figcaption class="figcaption">Style Image</figcaption>
+        </figure>
+        <figure class="image">
+           <img src="images/style_transfer/mega_style_79.jpg">
+               <figcaption class="figcaption">Style Transfer</figcaption>
+        </figure>
+   </div>
+
+    <div class="container">
+        <figure class="image">
+            <img src="images/style_transfer/henson.jpg">
+                <figcaption class="figcaption">Content Image</figcaption>
+        </figure>
+
+        <figure class="image">
+            <img src="images/style_transfer/starry_night.jpg">
+                <figcaption class="figcaption">Style Image</figcaption>
+        </figure>
+        <figure class="image">
+            <img src="images/style_transfer/mega_style_starry_79.jpg">
+                <figcaption class="figcaption">Style Transfer</figcaption>
+        </figure>
+   </div>
+
+   <div class="container">
+        <figure class="image">
+        <img src="images/style_transfer/tubingen.jpg">
+            <figcaption class="figcaption">Content Image</figcaption>
+        </figure>
+
+        <figure class="image">
+        <img src="images/style_transfer/starry_night.jpg">
+            <figcaption class="figcaption">Style Image</figcaption>
+        </figure>
+        <figure class="image">
+        <img src="images/style_transfer/mega_starry_tubingen_79.jpg">
+            <figcaption class="figcaption">Style Transfer</figcaption>
+        </figure>
+    </div>
+
+    <h3>Multiple Style Images</h3>
+
+    <p>
+        I wanted to try having two different style images and adding both of their losses to see how that would effect the style transfer. Here is that idea applied to the henson content image and the 
+        starry night/picasso style images! Another cool extension might be doing the same but utilizing triplet loss (it might result in a more cohesive end image).
+    </p>
+
+    <div class="container">
+        <figure class="image">
+            <img src="images/style_transfer/henson.jpg">
+                <figcaption class="figcaption">Content Image</figcaption>
+        </figure>
+
+        <figure class="image">
+            <img src="images/style_transfer/starry_night.jpg">
+                <figcaption class="figcaption">Style Image 1</figcaption>
+        </figure>
+        <figure class="image">
+            <img src="images/style_transfer/picasso.jpg">
+                <figcaption class="figcaption">Style Image 2</figcaption>
+        </figure>
+   </div>
+
+   <div class="container">
+    <figure class="image">
+        <img src="images/style_transfer/two_styles_39.jpg">
+            <figcaption class="figcaption">Style Transfer</figcaption>
+    </figure>
+</div>
+    
+</body>
